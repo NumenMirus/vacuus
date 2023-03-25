@@ -86,6 +86,7 @@ rapidxml::xml_document<>* get_doc(std::string *input){
     char* data = string_to_char_array(input);
     doc->parse<0>(data);
 
+    delete[] data;
     return doc;
 }
 
@@ -116,6 +117,7 @@ rapidxml::xml_node<>* get_new_node_from_creds(rapidxml::xml_document<>* doc, Cre
 }
 
 void print_tree(rapidxml::xml_node<>* root_node){
+
     for(rapidxml::xml_node<> *block_node = root_node->first_node("block"); block_node; block_node = block_node->next_sibling()){
 
         Credentials creds = Credentials(
@@ -134,10 +136,11 @@ std::vector<Credentials*>* find_credentials(std::string *filter, std::string *ke
     char* char_key = string_to_char_array(key);
     char* char_filter = string_to_char_array(filter);
     const std::regex txt_regex("(.*)(" + *key + ")(.*)");
+    char* value = nullptr;
 
     for(rapidxml::xml_node<>* block_node = root_node->first_node("block"); block_node; block_node = block_node->next_sibling()){
 
-        char* value = block_node->first_attribute(char_filter)->value();
+        value = block_node->first_attribute(char_filter)->value();
         std::cout << std::regex_match(value, txt_regex) << std::endl;
         if(std::regex_match(value, txt_regex)){
             std::cout << "found one!" << endl;
@@ -150,6 +153,9 @@ std::vector<Credentials*>* find_credentials(std::string *filter, std::string *ke
         }else{ std::cout << "no match" << endl; }
     }
 
+    delete[] char_key;
+    delete[] char_filter;
+    delete[] value;
     return res;
 }
 
@@ -158,7 +164,7 @@ int main(){
     using namespace rapidxml;
 
 
-    char *char_data = file_to_char_array("temp.xml"); // get file into a string to parse
+    char *char_data = file_to_char_array("db.xml"); // get file into a string to parse
     xml_document<>* doc = get_doc(char_data); // get xml tree from string
     xml_node<>* root_node = get_root_node(doc); //
 
@@ -183,7 +189,7 @@ int main(){
     root_node->append_node(new_node3);
     root_node->append_node(new_node4);
 
-
+    // TODO: allocate all char arrray with malloc and then free them
 
     string site = "mario";
     string filter = "username";
