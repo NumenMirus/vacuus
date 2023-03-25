@@ -8,7 +8,7 @@
 #include <fstream>
 #include <cstring>
 #include "lib/rapidxml.hpp"
-#include "lib/rapidxml_print.hpp"
+#include "lib/encrypt.h"
 
 class Credentials{
 public:
@@ -30,18 +30,9 @@ public:
 
     ~Credentials()= default;
 
-    // securely decrypt password
-    std::string* decrypt(){
-        return new std::string("ENC - " + this->password);
-    };
-
-    // securely encrypt password
-    std::string* encrypt(){
-        return new std::string("ENC - " + this->password);
-    };
-
     // return xml representation of this class to be added as node to db
     std::string* to_xml(){
+
         auto* res = new std::string(
                 "<block><site name=\""
                 + this->site + "\"></site><username name=\""
@@ -53,6 +44,7 @@ public:
 
     // prints a debug string
     void debug(){
+
         std::cout <<
             "Site: " << this->site <<
             "\nUsername: " << this->username <<
@@ -113,22 +105,25 @@ rapidxml::xml_node<>* get_root_node(rapidxml::xml_document<>* doc){
 
 rapidxml::xml_node<>* get_new_node_from_creds(rapidxml::xml_document<>* doc, Credentials *creds){
 
-    rapidxml::xml_node<>* new_node = doc->allocate_node(rapidxml::node_type(1));
+    rapidxml::xml_node<>* new_node = doc->allocate_node(rapidxml::node_type(1), "block");
 
     new_node->append_attribute(doc->allocate_attribute("site", string_to_char_array(&creds->site)));
     new_node->append_attribute(doc->allocate_attribute("username", string_to_char_array(&creds->username)));
-    new_node->append_attribute(doc->allocate_attribute("password", string_to_char_array(creds->encrypt())));
+    new_node->append_attribute(doc->allocate_attribute("password", string_to_char_array(&creds->password)));
 
     return new_node;
 }
 
 void print_tree(rapidxml::xml_node<>* root_node){
     for(rapidxml::xml_node<> *block_node = root_node->first_node("block"); block_node; block_node = block_node->next_sibling()){
-        std::cout << "Block content: \n\t|_ " <<
-             block_node->first_attribute("site")->value() << "\n\t|_ " <<
-             block_node->first_attribute("username")->value() << "\n\t|_ " <<
-             block_node->first_attribute("password")->value() << "\n" <<
-             std::endl;
+
+        Credentials creds = Credentials(
+                block_node->first_attribute("site")->value(),
+                block_node->first_attribute("username")->value(),
+                block_node->first_attribute("password")->value()
+                );
+
+        creds.debug();
     }
 
 }
@@ -145,7 +140,23 @@ int main(){
     Credentials new_creds = Credentials("https://vs.co", "mario_rossi", "MyVscoPassword");
     xml_node<>* new_node = get_new_node_from_creds(doc, &new_creds);
 
+    Credentials new_creds1 = Credentials("https://instagram.com", "mario_rossi", "MyInstagramPassword");
+    xml_node<>* new_node1 = get_new_node_from_creds(doc, &new_creds1);
+
+    Credentials new_creds2 = Credentials("https://twitter.com", "mario_rossi", "MyTwitterPassword");
+    xml_node<>* new_node2 = get_new_node_from_creds(doc, &new_creds2);
+
+    Credentials new_creds3 = Credentials("https://twich.com", "mario_rossi", "MyTwichPassword");
+    xml_node<>* new_node3 = get_new_node_from_creds(doc, &new_creds3);
+
+    Credentials new_creds4 = Credentials("https://youtube.com", "mario_rossi", "MyYoutubePassword");
+    xml_node<>* new_node4 = get_new_node_from_creds(doc, &new_creds4);
+
     root_node->append_node(new_node);
+    root_node->append_node(new_node1);
+    root_node->append_node(new_node2);
+    root_node->append_node(new_node3);
+    root_node->append_node(new_node4);
 
     print_tree(root_node);
 
