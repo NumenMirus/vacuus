@@ -7,6 +7,7 @@
 #include <sstream>
 #include <fstream>
 #include <cstring>
+#include <regex>
 #include "lib/rapidxml.hpp"
 #include "lib/encrypt.h"
 
@@ -128,6 +129,30 @@ void print_tree(rapidxml::xml_node<>* root_node){
 
 }
 
+std::vector<Credentials*>* find_credentials(std::string *filter, std::string *key, rapidxml::xml_node<>* root_node){
+    auto* res = new std::vector<Credentials*>;
+    char* char_key = string_to_char_array(key);
+    char* char_filter = string_to_char_array(filter);
+    const std::regex txt_regex("(.*)(" + *key + ")(.*)");
+
+    for(rapidxml::xml_node<>* block_node = root_node->first_node("block"); block_node; block_node = block_node->next_sibling()){
+
+        char* value = block_node->first_attribute(char_filter)->value();
+        std::cout << std::regex_match(value, txt_regex) << std::endl;
+        if(std::regex_match(value, txt_regex)){
+            std::cout << "found one!" << endl;
+            auto* found = new Credentials(
+                    block_node->first_attribute("site")->value(),
+                block_node->first_attribute("username")->value(),
+                block_node->first_attribute("password")->value()
+                    );
+            res->push_back(found);
+        }else{ std::cout << "no match" << endl; }
+    }
+
+    return res;
+}
+
 int main(){
     using namespace std;
     using namespace rapidxml;
@@ -158,7 +183,15 @@ int main(){
     root_node->append_node(new_node3);
     root_node->append_node(new_node4);
 
-    print_tree(root_node);
+
+
+    string site = "mario";
+    string filter = "username";
+    vector<Credentials*>* results = find_credentials(&filter, &site, root_node);
+
+    for(int i = 0; i < results->size(); i++){
+        results->at(i)->debug();
+    }
 
     cout << "Finished" << endl;
     delete[] char_data; // free char array before exiting program
